@@ -1,16 +1,16 @@
 ---
 name: vibe-kanban-mcp
 description: >
-  Complete reference and workflow guide for the Vibe Kanban MCP Server — a local
-  Model Context Protocol server that lets coding agents (Claude Code, Gemini, Codex,
-  OpenCode, Amp, Cursor, Copilot, Droid, Qwen) manage organisations, projects, issues,
-  workspaces, repositories, assignees, tags, and relationships via structured tool calls.
-  Use this skill whenever the user asks about Vibe Kanban MCP tools, wants to automate
-  issue tracking, start workspace sessions, assign issues, manage tags or relationships,
-  configure repo scripts, or build any workflow that involves the Vibe Kanban API through
-  an MCP client. Trigger even if the user only mentions "vibe kanban", "kanban mcp",
-  "start workspace session", "create issue with mcp", or asks how to wire up a coding
-  agent to Vibe Kanban programmatically.
+  Use this skill whenever the user wants to work with the Vibe Kanban MCP Server,
+  Kanban MCP tools, or any workflow that creates, updates, lists, assigns, tags, links,
+  or manages Vibe Kanban issues, projects, repositories, workspaces, or workspace
+  sessions through an MCP client or coding agent. This skill is the reference and
+  workflow guide for resolving org/project/workspace IDs, using context-aware tool
+  calls, configuring repo scripts, and starting or linking workspace sessions. Trigger
+  even when the user only says things like "vibe kanban", "kanban mcp", "create issue",
+  "assign this issue", "start workspace session", "link workspace", or asks how to wire
+  an agent, Claude Code, Codex, Cursor, OpenCode, Gemini, Copilot, Amp, Droid, or Qwen
+  into Vibe Kanban programmatically.
 ---
 
 # Vibe Kanban MCP Server — Skill
