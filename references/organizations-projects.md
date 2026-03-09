@@ -1,5 +1,7 @@
 # Organizations & Projects
 
+> All examples use MCPorter CLI: `mcporter call vibe_kanban.<tool> param=value`
+
 ## Table of contents
 
 1. [list_organizations](#list_organizations)
@@ -32,6 +34,12 @@ needed by downstream tools.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_organizations
+```
+
 ---
 
 ## list_org_members
@@ -43,7 +51,7 @@ Useful before calling `assign_issue` when you need to resolve a name to a `user_
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `organization_id` | No | UUID | Can be omitted when running inside a workspace with an inferred organisation |
+| `organization_id` | Yes | UUID | Resolve via `list_organizations` |
 
 **Response:**
 
@@ -66,19 +74,23 @@ Useful before calling `assign_issue` when you need to resolve a name to a `user_
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_org_members organization_id="<uuid>"
+```
+
 ---
 
 ## list_projects
 
-List all projects under a given organisation.  
-Unlike most tools, `organization_id` is **always required** here — it is never inferred
-from workspace context.
+List all projects under a given organisation.
 
 **Parameters:**
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `organization_id` | Yes | UUID | Must be explicit |
+| `organization_id` | Yes | UUID | Resolve via `list_organizations` |
 
 **Response:**
 
@@ -96,13 +108,22 @@ from workspace context.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_projects organization_id="<uuid>"
+```
+
 ---
 
 ## Typical call sequence
 
-```
-list_organizations  →  pick organization_id
-list_projects       →  pick project_id
+```bash
+mcporter call vibe_kanban.list_organizations
+# → pick organization_id from output
+
+mcporter call vibe_kanban.list_projects organization_id="<org_id>"
+# → pick project_id from output
 ```
 
 From here, proceed to issue management or workspace creation.

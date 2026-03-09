@@ -1,60 +1,120 @@
-# Overview — Vibe Kanban MCP Server
+# Overview — Vibe Kanban via MCPorter
 
 ## Table of contents
 
-1. [Starting the server](#starting-the-server)
-2. [Context inference](#context-inference)
-3. [Supported executors](#supported-executors)
-4. [Typical workflows](#typical-workflows)
+1. [Prerequisites](#prerequisites)
+2. [Install MCPorter](#install-mcporter)
+3. [Register Vibe Kanban](#register-vibe-kanban)
+4. [Call syntax](#call-syntax)
+5. [Reading output](#reading-output)
+6. [Supported executors](#supported-executors)
+7. [Typical workflows](#typical-workflows)
 
 ---
 
-## Starting the server
+## Prerequisites
 
-The MCP server ships with the Vibe Kanban package. Two launch modes:
+- **MCPorter** — installed and available on `PATH`.
+- **Vibe Kanban** — the `vibe-kanban` npm package (MCPorter launches it as a stdio
+  MCP server automatically).
+
+---
+
+## Install MCPorter
 
 ```bash
-# Via npx (no local build required)
-npx vibe-kanban --mcp
+# Global install
+npm i -g mcporter
 
-# Via locally built binary
-./vibe-kanban-mcp
+# Verify installation
+mcporter list
 ```
 
-The server is **local-only** — it cannot be reached from a public URL.  
-Any application on the same machine can connect to it as a standard MCP client.
+---
 
-### Registering the server in an MCP client
+## Register Vibe Kanban
 
-Add the following to your client's MCP server configuration (e.g. Claude Desktop,
-Raycast, a coding agent's `mcpServers` config block):
+Create or edit `config/mcporter.json` (project-level) or
+`~/.mcporter/mcporter.json` (global):
 
 ```json
 {
   "mcpServers": {
     "vibe_kanban": {
-      "command": "npx",
-      "args": ["-y", "vibe-kanban@latest", "--mcp"]
+      "command": "vibe-kanban",
+      "args": ["--mcp"]
     }
   }
 }
 ```
 
+Verify:
+
+```bash
+mcporter list vibe_kanban
+```
+
+This prints all Vibe Kanban tools with TypeScript-style signatures.
+
+### Ad-hoc usage (no config file)
+
+```bash
+mcporter call --stdio "vibe-kanban --mcp" list_organizations
+```
+
+Add `--persist config/mcporter.json` to save the definition for future runs.
+
 ---
 
-## Context inference
+## Call syntax
 
-When the MCP server is running **inside an active Vibe Kanban workspace session**,
-the following parameters are resolved automatically from context and may be omitted:
+All tool calls follow `mcporter call vibe_kanban.<tool> param=value`.
 
-| Parameter | Inferred from |
-|---|---|
-| `project_id` | Current workspace's linked remote project |
-| `organization_id` | Current workspace's linked organisation |
-| `workspace_id` | Current workspace |
+### Flag style (recommended)
 
-The single exception is `list_projects`, which always requires an explicit
-`organization_id` even when running inside a workspace.
+```bash
+mcporter call vibe_kanban.list_organizations
+mcporter call vibe_kanban.create_issue title="Add login page" priority=high
+mcporter call vibe_kanban.update_issue issue_id="<uuid>" status="Done"
+```
+
+### Function-call style
+
+```bash
+mcporter call 'vibe_kanban.create_issue(title: "Add login page", priority: "high")'
+```
+
+### Shorthand (infers `call` verb)
+
+```bash
+mcporter vibe_kanban.list_organizations
+mcporter vibe_kanban.list_issues status=backlog limit=10
+```
+
+### Passing arrays / objects
+
+JSON values can be passed as quoted strings:
+
+```bash
+mcporter call vibe_kanban.start_workspace_session \
+  title="Feature X" executor=CLAUDE_CODE \
+  repos='[{"repo_id":"<uuid>","base_branch":"main"}]'
+```
+
+---
+
+## Reading output
+
+MCPorter auto-formats JSON responses. Use flags to control format:
+
+```bash
+mcporter call vibe_kanban.list_issues --output json   # raw JSON
+mcporter call vibe_kanban.list_issues --output raw    # unprocessed MCP envelope
+```
+
+> **Important:** `project_id`, `organization_id`, and `workspace_id` must always be
+> passed explicitly. Context inference is not available through MCPorter — resolve
+> these IDs first by calling the corresponding list tools.
 
 ---
 
@@ -81,35 +141,45 @@ The server accepts them case-insensitively and with either hyphens or underscore
 
 ### 1. Turn a description into issues and start work
 
-This is the most common end-to-end pattern.
+```bash
+mcporter call vibe_kanban.list_organizations
+# → pick organization_id from output
 
-```
-list_organizations          → get organization_id
-list_projects               → get project_id
-create_issue (×N)           → create structured issues
-start_workspace_session     → kick off a coding agent for each issue
+mcporter call vibe_kanban.list_projects organization_id="<org_id>"
+# → pick project_id from output
+
+mcporter call vibe_kanban.create_issue project_id="<proj_id>" title="Task 1" priority=high
+# → get issue_id from output
+
+mcporter call vibe_kanban.start_workspace_session \
+  title="Implement Task 1" executor=CLAUDE_CODE \
+  repos='[{"repo_id":"<repo_id>","base_branch":"main"}]' \
+  issue_id="<issue_id>"
 ```
 
 ### 2. Team assignment workflow
 
-```
-list_org_members            → find user_id values
-list_issues                 → find issue_id values
-assign_issue (×N)           → link users to issues
-list_issue_assignees        → verify assignments
+```bash
+mcporter call vibe_kanban.list_org_members organization_id="<org_id>"
+mcporter call vibe_kanban.list_issues project_id="<proj_id>"
+mcporter call vibe_kanban.assign_issue issue_id="<issue_id>" user_id="<user_id>"
+mcporter call vibe_kanban.list_issue_assignees issue_id="<issue_id>"
 ```
 
 ### 3. Multi-repo workspace
 
-```
-list_repos                  → get repo_id values
-start_workspace_session     → pass multiple {repo_id, base_branch} objects in repos[]
+```bash
+mcporter call vibe_kanban.list_repos
+
+mcporter call vibe_kanban.start_workspace_session \
+  title="Cross-repo feature" executor=CLAUDE_CODE \
+  repos='[{"repo_id":"<id1>","base_branch":"main"},{"repo_id":"<id2>","base_branch":"main"}]'
 ```
 
-### 4. Planning agent inside Vibe Kanban
+### 4. Planning agent
 
-A coding agent running *within* a Vibe Kanban workspace can use the MCP server to
-populate issues automatically:
+A coding agent running inside a Vibe Kanban workspace can use MCPorter to populate
+issues automatically:
 
 1. Create a planning issue with a custom agent profile (see Agent Configurations docs).
 2. The agent explores the codebase and calls `create_issue` for each sub-task.

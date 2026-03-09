@@ -1,5 +1,7 @@
 # Repositories & Script Management
 
+> All examples use MCPorter CLI: `mcporter call vibe_kanban.<tool> param=value`
+
 ## Table of contents
 
 1. [list_repos](#list_repos)
@@ -30,6 +32,12 @@ Use this first to resolve a `repo_id` before calling any other repo tool or
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_repos
+```
+
 ---
 
 ## get_repo
@@ -53,6 +61,12 @@ Fetch full details for a single repository, including all three configured scrip
   "cleanup_script": "rm -rf dist node_modules",
   "dev_server_script": "npm run dev"
 }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.get_repo repo_id="<uuid>"
 ```
 
 ---
@@ -87,6 +101,13 @@ Pass an empty string `""` to any update tool to clear the script.
 { "success": true, "repo_id": "uuid", "field": "setup_script" }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.update_setup_script repo_id="<uuid>" script="npm ci"
+mcporter call vibe_kanban.update_setup_script repo_id="<uuid>" script=""  # clear
+```
+
 ---
 
 ## update_cleanup_script
@@ -99,6 +120,12 @@ Pass an empty string `""` to any update tool to clear the script.
 | `script` | Yes | string | Pass `""` to clear |
 
 **Response:** same shape as `update_setup_script`, with `"field": "cleanup_script"`.
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.update_cleanup_script repo_id="<uuid>" script="rm -rf dist node_modules"
+```
 
 ---
 
@@ -113,13 +140,19 @@ Pass an empty string `""` to any update tool to clear the script.
 
 **Response:** same shape as `update_setup_script`, with `"field": "dev_server_script"`.
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.update_dev_server_script repo_id="<uuid>" script="npm run dev"
+```
+
 ---
 
 ## Typical pattern
 
-```
-list_repos              → pick repo_id
-get_repo                → inspect current scripts
-update_setup_script     → set install / migration commands
-update_dev_server_script → set the dev server command
+```bash
+mcporter call vibe_kanban.list_repos
+mcporter call vibe_kanban.get_repo repo_id="<uuid>"
+mcporter call vibe_kanban.update_setup_script repo_id="<uuid>" script="npm ci"
+mcporter call vibe_kanban.update_dev_server_script repo_id="<uuid>" script="npm run dev"
 ```

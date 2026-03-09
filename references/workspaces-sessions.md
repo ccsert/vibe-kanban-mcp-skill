@@ -1,5 +1,7 @@
 # Workspaces & Sessions
 
+> All examples use MCPorter CLI: `mcporter call vibe_kanban.<tool> param=value`
+
 ## Table of contents
 
 1. [list_workspaces](#list_workspaces)
@@ -47,18 +49,25 @@ Return a paginated list of local workspaces, with optional filters.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_workspaces
+mcporter call vibe_kanban.list_workspaces archived=true
+mcporter call vibe_kanban.list_workspaces name_search="login" limit=10
+```
+
 ---
 
 ## update_workspace
 
-Update display properties of an existing workspace.  
-`workspace_id` can be omitted when already running inside the target workspace.
+Update display properties of an existing workspace.
 
 **Parameters:**
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `workspace_id` | No | UUID | Inferred from context when available |
+| `workspace_id` | Yes | UUID | Resolve via `list_workspaces` |
 | `archived` | No | bool | Set archived state |
 | `pinned` | No | bool | Set pinned state |
 | `name` | No | string | Set display name; pass `""` to clear |
@@ -75,6 +84,12 @@ Update display properties of an existing workspace.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.update_workspace workspace_id="<uuid>" name="New name" pinned=true
+```
+
 ---
 
 ## delete_workspace
@@ -85,7 +100,7 @@ Delete a local workspace. Optionally cascade to remote workspace and Git branche
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `workspace_id` | No | UUID | Inferred from context when available |
+| `workspace_id` | Yes | UUID | Resolve via `list_workspaces` |
 | `delete_remote` | No | bool | Also delete the remote workspace (default `false`) |
 | `delete_branches` | No | bool | Also delete associated Git branches (default `false`) |
 
@@ -100,13 +115,20 @@ Delete a local workspace. Optionally cascade to remote workspace and Git branche
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.delete_workspace workspace_id="<uuid>"
+mcporter call vibe_kanban.delete_workspace workspace_id="<uuid>" delete_branches=true
+```
+
 ---
 
 ## start_workspace_session
 
-**This is the most important tool in the server.** It creates a new workspace, checks
-out an isolated branch from the chosen base, and launches a coding agent to work on
-the given task.
+**This is the most important tool.** It creates a new workspace, checks out an
+isolated branch from the chosen base, and launches a coding agent to work on the
+given task.
 
 When `issue_id` is provided:
 - The workspace is automatically linked to that issue.
@@ -155,20 +177,22 @@ Values are case-insensitive and accept hyphens or underscores.
 { "workspace_id": "uuid" }
 ```
 
-### Example call
+### Example
 
-```json
-{
-  "title": "Implement JWT login",
-  "prompt_override": "Create a login page with username/password form and JWT-based auth on the main branch",
-  "executor": "CLAUDE_CODE",
-  "repos": [
-    {
-      "repo_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-      "base_branch": "main"
-    }
-  ]
-}
+```bash
+# With custom prompt:
+mcporter call vibe_kanban.start_workspace_session \
+  title="Implement JWT login" \
+  executor=CLAUDE_CODE \
+  repos='[{"repo_id":"aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee","base_branch":"main"}]' \
+  prompt_override="Create a login page with username/password form and JWT-based auth"
+
+# With an issue (prompt derived from issue title/description):
+mcporter call vibe_kanban.start_workspace_session \
+  title="Implement JWT login" \
+  executor=CLAUDE_CODE \
+  repos='[{"repo_id":"<uuid>","base_branch":"main"}]' \
+  issue_id="<uuid>"
 ```
 
 ---
@@ -195,28 +219,39 @@ workspace was created without an `issue_id` but you later want to track it).
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.link_workspace workspace_id="<uuid>" issue_id="<uuid>"
+```
+
 ---
 
 ## Common patterns
 
 ### Start work on an existing issue
 
-```
-list_repos              → get repo_id + choose base_branch
-start_workspace_session → pass issue_id; omit prompt_override to use issue description
+```bash
+mcporter call vibe_kanban.list_repos
+# → pick repo_id
+
+mcporter call vibe_kanban.start_workspace_session \
+  title="Work on PROJ-1" executor=CLAUDE_CODE \
+  repos='[{"repo_id":"<uuid>","base_branch":"main"}]' issue_id="<uuid>"
 ```
 
 ### Manually track a workspace against an issue
 
-```
-list_workspaces         → find the workspace_id
-list_issues             → find the issue_id
-link_workspace          → connect the two
+```bash
+mcporter call vibe_kanban.list_workspaces
+mcporter call vibe_kanban.list_issues project_id="<uuid>"
+mcporter call vibe_kanban.link_workspace workspace_id="<uuid>" issue_id="<uuid>"
 ```
 
 ### Clean up old workspaces
 
+```bash
+mcporter call vibe_kanban.list_workspaces archived=true
+mcporter call vibe_kanban.delete_workspace workspace_id="<uuid>" delete_branches=true
 ```
-list_workspaces (archived=true)   → find stale workspaces
-delete_workspace (delete_branches=true) for each
 ```

@@ -1,5 +1,7 @@
 # Issues, Assignees, Tags & Relationships
 
+> All examples use MCPorter CLI: `mcporter call vibe_kanban.<tool> param=value`
+
 ## Table of contents
 
 1. [Issue tools](#issue-tools)
@@ -27,8 +29,7 @@
 
 ### create_issue
 
-Create a new issue in a project.  
-`project_id` can be omitted when running inside an associated workspace.  
+Create a new issue in a project.
 Use `@tagname` in `description` to expand inline tags.
 
 **Parameters:**
@@ -36,7 +37,7 @@ Use `@tagname` in `description` to expand inline tags.
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
 | `title` | Yes | string | Issue title |
-| `project_id` | No | UUID | Inferred from context when available |
+| `project_id` | Yes | UUID | Resolve via `list_projects` |
 | `description` | No | string | Supports `@tagname` expansion |
 | `priority` | No | string | `urgent` \| `high` \| `medium` \| `low` |
 | `parent_issue_id` | No | UUID | Creates a sub-task under the given issue |
@@ -45,6 +46,13 @@ Use `@tagname` in `description` to expand inline tags.
 
 ```json
 { "issue_id": "uuid" }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.create_issue project_id="<uuid>" title="Add login page" priority=high
+mcporter call vibe_kanban.create_issue project_id="<uuid>" title="Sub-task" parent_issue_id="<uuid>"
 ```
 
 ---
@@ -58,7 +66,7 @@ Without filters, returns the 50 most recent issues.
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `project_id` | No | UUID | Inferred from context when available |
+| `project_id` | Yes | UUID | Resolve via `list_projects` |
 | `limit` | No | int | Default 50 |
 | `offset` | No | int | Default 0 (for pagination) |
 | `status` | No | string | Filter by status name (case-insensitive) |
@@ -97,6 +105,15 @@ Without filters, returns the 50 most recent issues.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_issues project_id="<uuid>"
+mcporter call vibe_kanban.list_issues project_id="<uuid>" status=backlog priority=high limit=10
+mcporter call vibe_kanban.list_issues project_id="<uuid>" search="login"
+mcporter call vibe_kanban.list_issues project_id="<uuid>" simple_id="PROJ-1"
+```
+
 ---
 
 ### get_issue
@@ -111,6 +128,12 @@ and attached pull requests.
 | `issue_id` | Yes | UUID |
 
 **Response:** same shape as the `issue` field returned by `update_issue` (see below).
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.get_issue issue_id="<uuid>"
+```
 
 ---
 
@@ -156,6 +179,13 @@ Only fields you pass are changed; omitted fields stay as-is.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.update_issue issue_id="<uuid>" status="Done"
+mcporter call vibe_kanban.update_issue issue_id="<uuid>" title="New title" priority=urgent
+```
+
 ---
 
 ### delete_issue
@@ -172,6 +202,12 @@ Permanently delete an issue. This cannot be undone.
 
 ```json
 { "deleted_issue_id": "uuid" }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.delete_issue issue_id="<uuid>"
 ```
 
 ---
@@ -205,6 +241,12 @@ Return all users currently assigned to an issue.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_issue_assignees issue_id="<uuid>"
+```
+
 ---
 
 ### assign_issue
@@ -222,6 +264,12 @@ Assign a user to an issue. Call `list_org_members` first to get a valid `user_id
 
 ```json
 { "issue_assignee_id": "uuid" }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.assign_issue issue_id="<uuid>" user_id="<uuid>"
 ```
 
 ---
@@ -243,6 +291,12 @@ Remove an assignee. Requires the `issue_assignee_id` from `list_issue_assignees`
 { "success": true, "issue_assignee_id": "uuid" }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.unassign_issue issue_assignee_id="<uuid>"
+```
+
 ---
 
 ## Tag tools
@@ -255,7 +309,7 @@ List every tag available in a project. Tags have a name and an optional colour.
 
 | Parameter | Required | Type | Notes |
 |---|---|---|---|
-| `project_id` | No | UUID | Inferred from context when available |
+| `project_id` | Yes | UUID | Resolve via `list_projects` |
 
 **Response:**
 
@@ -267,6 +321,12 @@ List every tag available in a project. Tags have a name and an optional colour.
   ],
   "count": 1
 }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_tags project_id="<uuid>"
 ```
 
 ---
@@ -293,6 +353,12 @@ List the tags currently attached to a specific issue.
 }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.list_issue_tags issue_id="<uuid>"
+```
+
 ---
 
 ### add_issue_tag
@@ -312,6 +378,12 @@ Attach a tag to an issue. Call `list_tags` first to resolve `tag_id`.
 { "issue_tag_id": "uuid" }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.add_issue_tag issue_id="<uuid>" tag_id="<uuid>"
+```
+
 ---
 
 ### remove_issue_tag
@@ -329,6 +401,12 @@ Detach a tag from an issue. Requires the `issue_tag_id` from `list_issue_tags`
 
 ```json
 { "success": true, "issue_tag_id": "uuid" }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.remove_issue_tag issue_tag_id="<uuid>"
 ```
 
 ---
@@ -353,6 +431,13 @@ Relationships model the dependency graph between issues.
 { "relationship_id": "uuid" }
 ```
 
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.create_issue_relationship \
+  issue_id="<uuid>" related_issue_id="<uuid>" relationship_type=blocking
+```
+
 ---
 
 ### delete_issue_relationship
@@ -367,4 +452,10 @@ Relationships model the dependency graph between issues.
 
 ```json
 { "success": true, "deleted_relationship_id": "uuid" }
+```
+
+**MCPorter:**
+
+```bash
+mcporter call vibe_kanban.delete_issue_relationship relationship_id="<uuid>"
 ```

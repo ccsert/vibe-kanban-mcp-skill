@@ -1,8 +1,10 @@
 # vibe-kanban-mcp-skill
 
-`vibe-kanban-mcp-skill` publishes a reusable agent skill for working with the Vibe Kanban MCP Server.
+`vibe-kanban-mcp-skill` publishes a reusable agent skill for working with Vibe Kanban via **MCPorter CLI**.
 
 The skill gives coding agents a focused reference for Vibe Kanban workflows: discovering organizations and projects, creating and updating issues, assigning work, managing tags and relationships, configuring repository scripts, and starting workspace sessions that launch coding agents against tracked tasks.
+
+All tool calls are executed through MCPorter (`mcporter call vibe_kanban.<tool> param=value`), so the agent only needs terminal access and a working Vibe Kanban CLI installation.
 
 ## Included skill
 
@@ -13,30 +15,30 @@ The skill gives coding agents a focused reference for Vibe Kanban workflows: dis
 List the skills available in this repository:
 
 ```bash
-npx skills add ccsert/vibe-kanban-mcp-skill --list
+skills add ccsert/vibe-kanban-mcp-skill --list
 ```
 
 Install the skill:
 
 ```bash
-npx skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp
+skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp
 ```
 
 Install to a specific agent:
 
 ```bash
-npx skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp -a opencode
+skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp -a opencode
 ```
 
 Install globally instead of per-project:
 
 ```bash
-npx skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp -g
+skills add ccsert/vibe-kanban-mcp-skill --skill vibe-kanban-mcp -g
 ```
 
 ## What this skill is for
 
-Use this skill when a user wants an agent to work with Vibe Kanban through MCP, especially when they want to:
+Use this skill when a user wants an agent to work with Vibe Kanban via MCPorter, especially when they want to:
 
 - list organizations, members, and projects
 - create, inspect, update, search, or delete issues
@@ -50,7 +52,7 @@ Use this skill when a user wants an agent to work with Vibe Kanban through MCP, 
 
 ## Supported tool calls
 
-This skill currently documents the following Vibe Kanban MCP tool calls.
+This skill currently documents the following Vibe Kanban tool calls as invoked through MCPorter.
 
 ### Organizations and projects
 
@@ -114,15 +116,9 @@ This skill currently documents the following Vibe Kanban MCP tool calls.
 | `update_cleanup_script` | Set or clear the repo cleanup script |
 | `update_dev_server_script` | Set or clear the repo dev server script |
 
-### Context-aware behavior covered by the skill
+### Context behavior
 
-The skill also explains how context inference works when tools run inside an active Vibe Kanban workspace session. In that mode, some parameters can often be omitted because they are inferred automatically:
-
-- `organization_id`
-- `project_id`
-- `workspace_id`
-
-The main exception documented by the skill is `list_projects`, which still requires an explicit `organization_id`.
+All parameters (including `organization_id`, `project_id`, `workspace_id`) must be provided explicitly in MCPorter calls. Use discovery tools like `list_organizations`, `list_projects`, and `list_workspaces` first to resolve the required IDs.
 
 ## Supported workspace executors
 
@@ -139,6 +135,49 @@ The skill documents the accepted `executor` values for `start_workspace_session`
 - `DROID`
 
 The server accepts these case-insensitively and supports hyphen or underscore variants.
+
+## MCPorter setup
+
+Register Vibe Kanban once, then call any tool from the terminal:
+
+### Setup
+
+```bash
+# Create config/mcporter.json (or ~/.mcporter/mcporter.json for global)
+cat > config/mcporter.json << 'EOF'
+{
+  "mcpServers": {
+    "vibe_kanban": {
+      "command": "vibe-kanban",
+      "args": ["--mcp"]
+    }
+  }
+}
+EOF
+
+# Verify
+mcporter list vibe_kanban
+```
+
+### Call syntax
+
+```bash
+# Flag style
+mcporter call vibe_kanban.list_organizations
+mcporter call vibe_kanban.create_issue title="Add login page" priority=high
+
+# Function-call style
+mcporter call 'vibe_kanban.create_issue(title: "Add login page", priority: "high")'
+
+# Shorthand (infers call verb)
+mcporter vibe_kanban.list_issues status=backlog
+```
+
+### Ad-hoc usage (no config)
+
+```bash
+mcporter call --stdio "vibe-kanban --mcp" list_organizations
+```
 
 ## Typical workflows
 
@@ -197,7 +236,7 @@ link_workspace
 | File | Covers |
 |---|---|
 | `SKILL.md` | Trigger description, tool summary, and usage guidance |
-| `references/overview.md` | Server startup, MCP registration, context inference, executors, common workflows |
+| `references/overview.md` | MCPorter setup, explicit ID handling, executors, common workflows |
 | `references/organizations-projects.md` | Organization, member, and project discovery |
 | `references/issues.md` | Issues, assignees, tags, and relationships |
 | `references/workspaces-sessions.md` | Workspace lifecycle and session launch workflows |
@@ -205,32 +244,26 @@ link_workspace
 
 ## Requirements
 
-- an agent or MCP client that supports `SKILL.md`-based skills
-- access to a Vibe Kanban MCP Server environment
-- a local MCP configuration that can connect to Vibe Kanban
+- an agent that supports `SKILL.md`-based skills
+- `mcporter` installed and available on `PATH`
+- `vibe-kanban` installed and available on `PATH`
 
-## Local MCP server setup
+## Vibe Kanban server setup
 
-The referenced docs cover two common ways to start the server:
-
-```bash
-npx vibe-kanban --mcp
-```
-
-or:
+The referenced docs assume Vibe Kanban is started by MCPorter as a stdio server:
 
 ```bash
-./vibe-kanban-mcp
+vibe-kanban --mcp
 ```
 
-Example MCP client configuration:
+Example MCPorter server configuration:
 
 ```json
 {
   "mcpServers": {
     "vibe_kanban": {
-      "command": "npx",
-      "args": ["-y", "vibe-kanban@latest", "--mcp"]
+      "command": "vibe-kanban",
+      "args": ["--mcp"]
     }
   }
 }
